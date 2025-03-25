@@ -1,11 +1,11 @@
 packageName   = "decimal"
-version       = "0.0.2"
+version       = "0.0.4"
 author        = "Status Research & Development GmbH"
 description   = "A correctly-rounded arbitrary precision decimal floating point arithmetic library"
 license       = "(MIT or Apache License 2.0) and Simplified BSD"
 
 ### Dependencies
-requires "nim >= 0.18.0"
+requires "nim >= 2.0.0"
 
 ### Helper functions
 proc test(name: string, defaultLang = "c") =

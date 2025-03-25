@@ -5,8 +5,8 @@
 #   * Apache v2 license (license terms in the root directory or at http://www.apache.org/licenses/LICENSE-2.0).
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
-import strutils, macros, ospaths
-from os import DirSep, walkFiles
+import strutils, macros
+from os import DirSep, walkFiles, `/`
 
 const cSourcesPath = currentSourcePath.rsplit(DirSep, 1)[0] & "/mpdecimal_wrapper/generated"
 const cHeader = csourcesPath / "mpdecimal.h"
@@ -28,7 +28,6 @@ when defined(x86_64) or defined(x86):
 else:
   {.passC: "-DANSI".}
 
-{.deadCodeElim: on.}
 {.pragma: Pdecimal, importc, cdecl,importc.}
 {.pragma: Tdecimal, importc, header: cHeader.}
 
@@ -108,9 +107,9 @@ when sizeof(int) == 8:
     mpd_uint_t* = uint64
   ##  unsigned mod type
   const
-    MPD_SIZE_MAX* = high(csize)
+    MPD_SIZE_MAX* = high(csize_t)
   type
-    mpd_size_t* = csize
+    mpd_size_t* = csize_t
   ##  unsigned size type
   ##  type for exp, digits, len, prec
   const
@@ -348,7 +347,7 @@ type
     alloc* {.importc: "alloc".}: mpd_ssize_t
     data* {.importc: "data".}: ptr mpd_uint_t
 
-  uchar* = cuchar
+  uchar* = char
 
 ## ****************************************************************************
 ##                        Quiet, thread-safe functions
@@ -732,21 +731,21 @@ when not defined(LEGACY_COMPILER):
   proc mpd_qdiv_u64*(result: ptr mpd_t; a: ptr mpd_t; b: uint64;
                     ctx: ptr mpd_context_t; status: ptr uint32) {.cdecl,
       importc: "mpd_qdiv_u64", header: cHeader.}
-proc mpd_sizeinbase*(a: ptr mpd_t; base: uint32): csize {.cdecl,
+proc mpd_sizeinbase*(a: ptr mpd_t; base: uint32): csize_t {.cdecl,
     importc: "mpd_sizeinbase", header: cHeader.}
-proc mpd_qimport_u16*(result: ptr mpd_t; srcdata: ptr uint16; srclen: csize;
+proc mpd_qimport_u16*(result: ptr mpd_t; srcdata: ptr uint16; srclen: csize_t;
                      srcsign: uint8; srcbase: uint32; ctx: ptr mpd_context_t;
                      status: ptr uint32) {.cdecl, importc: "mpd_qimport_u16",
     header: cHeader.}
-proc mpd_qimport_u32*(result: ptr mpd_t; srcdata: ptr uint32; srclen: csize;
+proc mpd_qimport_u32*(result: ptr mpd_t; srcdata: ptr uint32; srclen: csize_t;
                      srcsign: uint8; srcbase: uint32; ctx: ptr mpd_context_t;
                      status: ptr uint32) {.cdecl, importc: "mpd_qimport_u32",
     header: cHeader.}
-proc mpd_qexport_u16*(rdata: ptr ptr uint16; rlen: csize; base: uint32;
-                     src: ptr mpd_t; status: ptr uint32): csize {.cdecl,
+proc mpd_qexport_u16*(rdata: ptr ptr uint16; rlen: csize_t; base: uint32;
+                     src: ptr mpd_t; status: ptr uint32): csize_t {.cdecl,
     importc: "mpd_qexport_u16", header: cHeader.}
-proc mpd_qexport_u32*(rdata: ptr ptr uint32; rlen: csize; base: uint32;
-                     src: ptr mpd_t; status: ptr uint32): csize {.cdecl,
+proc mpd_qexport_u32*(rdata: ptr ptr uint32; rlen: csize_t; base: uint32;
+                     src: ptr mpd_t; status: ptr uint32): csize_t {.cdecl,
     importc: "mpd_qexport_u32", header: cHeader.}
 ## ****************************************************************************
 ##                            Signalling functions
@@ -754,17 +753,17 @@ proc mpd_qexport_u32*(rdata: ptr ptr uint32; rlen: csize; base: uint32;
 
 proc mpd_format*(dec: ptr mpd_t; fmt: cstring; ctx: ptr mpd_context_t): cstring {.cdecl,
     importc: "mpd_format", header: cHeader.}
-proc mpd_import_u16*(result: ptr mpd_t; srcdata: ptr uint16; srclen: csize;
+proc mpd_import_u16*(result: ptr mpd_t; srcdata: ptr uint16; srclen: csize_t;
                     srcsign: uint8; base: uint32; ctx: ptr mpd_context_t) {.cdecl,
     importc: "mpd_import_u16", header: cHeader.}
-proc mpd_import_u32*(result: ptr mpd_t; srcdata: ptr uint32; srclen: csize;
+proc mpd_import_u32*(result: ptr mpd_t; srcdata: ptr uint32; srclen: csize_t;
                     srcsign: uint8; base: uint32; ctx: ptr mpd_context_t) {.cdecl,
     importc: "mpd_import_u32", header: cHeader.}
-proc mpd_export_u16*(rdata: ptr ptr uint16; rlen: csize; base: uint32;
-                    src: ptr mpd_t; ctx: ptr mpd_context_t): csize {.cdecl,
+proc mpd_export_u16*(rdata: ptr ptr uint16; rlen: csize_t; base: uint32;
+                    src: ptr mpd_t; ctx: ptr mpd_context_t): csize_t {.cdecl,
     importc: "mpd_export_u16", header: cHeader.}
-proc mpd_export_u32*(rdata: ptr ptr uint32; rlen: csize; base: uint32;
-                    src: ptr mpd_t; ctx: ptr mpd_context_t): csize {.cdecl,
+proc mpd_export_u32*(rdata: ptr ptr uint32; rlen: csize_t; base: uint32;
+                    src: ptr mpd_t; ctx: ptr mpd_context_t): csize_t {.cdecl,
     importc: "mpd_export_u32", header: cHeader.}
 proc mpd_finalize*(result: ptr mpd_t; ctx: ptr mpd_context_t) {.cdecl,
     importc: "mpd_finalize", header: cHeader.}
@@ -1138,15 +1137,15 @@ proc mpd_copy_flags*(result: ptr mpd_t; a: ptr mpd_t) {.cdecl,
 ##                             Memory handling
 ## ****************************************************************************
 
-var mpd_mallocfunc*: proc (size: csize): pointer {.cdecl.}
+var mpd_mallocfunc*: proc (size: csize_t): pointer {.cdecl.}
 
-var mpd_callocfunc*: proc (nmemb: csize; size: csize): pointer {.cdecl.}
+var mpd_callocfunc*: proc (nmemb: csize_t; size: csize_t): pointer {.cdecl.}
 
-var mpd_reallocfunc*: proc (`ptr`: pointer; size: csize): pointer {.cdecl.}
+var mpd_reallocfunc*: proc (`ptr`: pointer; size: csize_t): pointer {.cdecl.}
 
 var mpd_free*: proc (`ptr`: pointer) {.cdecl.}
 
-proc mpd_callocfunc_em*(nmemb: csize; size: csize): pointer {.cdecl,
+proc mpd_callocfunc_em*(nmemb: csize_t; size: csize_t): pointer {.cdecl,
     importc: "mpd_callocfunc_em", header: cHeader.}
 proc mpd_alloc*(nmemb: mpd_size_t; size: mpd_size_t): pointer {.cdecl,
     importc: "mpd_alloc", header: cHeader.}
@@ -1176,14 +1175,12 @@ proc mpd_resize_zero*(result: ptr mpd_t; size: mpd_ssize_t; ctx: ptr mpd_context
     cdecl, importc: "mpd_resize_zero", header: cHeader.}
 
 type
-  DecimalType* = ref[ptr mpd_t]
+  DecimalType* = object
+    x*: ptr mpd_t
 
-proc deleteDecimal(x: DecimalType) =
-  if not x.isNil:          # Managed by Nim
-    assert(not(x[].isNil)) # Managed by MpDecimal
-    mpd_del(x[])
+proc `=destroy`(x: DecimalType) =
+  if not x.x.isNil:        # Managed by Nim
+    mpd_del(x.x)
 
 proc newDecimal*(): DecimalType =
-  ## Initialize a empty DecimalType
-  new result, deleteDecimal
-  result[] = mpd_qnew()
+  result.x = mpd_qnew()

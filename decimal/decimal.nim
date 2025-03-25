@@ -6,11 +6,12 @@
 # at your option. This file may not be copied, modified, or distributed except according to those terms.
 
 import decimal_lowlevel
+import system/ansi_c
 
 export DecimalType, newDecimal    # type bound operation `newDecimal` and `deleteDecimal` can be defined only in the same module
 
 type
-  DecimalError* = object of Exception
+  DecimalError* = object of ValueError
 
 const
   DEFAULT_PREC = MPD_RDIGITS * 2
@@ -30,64 +31,66 @@ proc setPrec*(prec: mpd_ssize_t) =
 
 proc `$`*(s: DecimalType): string =
   ## Convert DecimalType to string
-  $mpd_to_sci(s[], 0)
+  let tmp = mpd_to_sci(s.x, 0)
+  result = $tmp
+  c_free(tmp)
 
 proc newDecimal*(s: string): DecimalType =
   ## Create a new DecimalType from a string
   result = newDecimal()
-  mpd_set_string(result[], s, CTX_ADDR)
+  mpd_set_string(result.x, s, CTX_ADDR)
 
 proc newDecimal*(s: int): DecimalType =
   ## Create a new DecimalType from an int
   result = newDecimal()
   when (sizeof(int) == 8):
-    mpd_set_i64(result[], s, CTX_ADDR)
+    mpd_set_i64(result.x, s, CTX_ADDR)
   else:
-    mpd_set_i32(result[], s, CTX_ADDR)
+    mpd_set_i32(result.x, s, CTX_ADDR)
 
 proc newDecimal*(s: int64): DecimalType =
   ## Create a new DecimalType from a uint64
   result = newDecimal()
-  mpd_set_i64(result[], s, CTX_ADDR)
+  mpd_set_i64(result.x, s, CTX_ADDR)
 
 proc newDecimal*(s: int32): DecimalType =
   ## Create a new DecimalType from a uint32
   result = newDecimal()
-  mpd_set_i32(result[], s, CTX_ADDR)
+  mpd_set_i32(result.x, s, CTX_ADDR)
 
 proc newDecimal*(s: int8 or uint16): DecimalType =
   ## Create a new DecimalType from a int64
   result = newDecimal()
-  mpd_set_i32(result[], int32(s), CTX_ADDR)
+  mpd_set_i32(result.x, int32(s), CTX_ADDR)
 
 proc newDecimal*(s: uint): DecimalType =
   ## Create a new DecimalType from an uint
   result = newDecimal()
   when (sizeof(uint) == 8):
-    mpd_set_u64(result[], s, CTX_ADDR)
+    mpd_set_u64(result.x, s, CTX_ADDR)
   else:
-    mpd_set_u32(result[], s, CTX_ADDR)
+    mpd_set_u32(result.x, s, CTX_ADDR)
 
 proc newDecimal*(s: uint64): DecimalType =
   ## Create a new DecimalType from a uint64
   result = newDecimal()
-  mpd_set_u64(result[], s, CTX_ADDR)
+  mpd_set_u64(result.x, s, CTX_ADDR)
 
 proc newDecimal*(s: uint32): DecimalType =
   ## Create a new DecimalType from a uint32
   result = newDecimal()
-  mpd_set_u32(result[], s, CTX_ADDR)
+  mpd_set_u32(result.x, s, CTX_ADDR)
 
 proc newDecimal*(s: uint8 or uint16): DecimalType =
   ## Create a new DecimalType from a int64
   result = newDecimal()
-  mpd_set_u32(result[], uint32(s), CTX_ADDR)
+  mpd_set_u32(result.x, uint32(s), CTX_ADDR)
 
 proc clone*(b: DecimalType): DecimalType =
   ## Clone a DecimalType and returns a new independent one
   var status: uint32
   result = newDecimal()
-  let success = mpd_qcopy(result[], b[], addr status)
+  let success = mpd_qcopy(result.x, b.x, addr status)
   if success == 0:
     raise newException(DecimalError, "Decimal failed to copy")
 
@@ -96,7 +99,7 @@ proc clone*(b: DecimalType): DecimalType =
 proc `+`*(a, b: DecimalType): DecimalType =
   var status: uint32
   result = newDecimal()
-  mpd_qadd(result[], a[], b[], CTX_ADDR, addr status)
+  mpd_qadd(result.x, a.x, b.x, CTX_ADDR, addr status)
 
 template `+`*[T: SomeNumber](a: DecimalType, b: T): untyped =
   a + newDecimal(b)
@@ -107,7 +110,7 @@ template `+`*[T: SomeNumber](a: T, b: DecimalType): untyped =
 proc `+=`*(a, b: DecimalType) =
   ## Inplace addition
   var status: uint32
-  mpd_qadd(a[], a[], b[], CTX_ADDR, addr status)
+  mpd_qadd(a.x, a.x, b.x, CTX_ADDR, addr status)
 
 template `+=`*[T: SomeNumber](a: DecimalType, b: T): untyped =
   a += newDecimal(b)
@@ -117,7 +120,7 @@ template `+=`*[T: SomeNumber](a: DecimalType, b: T): untyped =
 proc `-`*(a, b: DecimalType): DecimalType =
   var status: uint32
   result = newDecimal()
-  mpd_qsub(result[], a[], b[], CTX_ADDR, addr status)
+  mpd_qsub(result.x, a.x, b.x, CTX_ADDR, addr status)
 
 template `-`*[T: SomeNumber](a: DecimalType, b: T): untyped =
   a - newDecimal(b)
@@ -128,7 +131,7 @@ template `-`*[T: SomeNumber](a: T, b: DecimalType): untyped =
 proc `-=`*(a, b: DecimalType) =
   ## Inplace subtraction
   var status: uint32
-  mpd_qsub(a[], a[], b[], CTX_ADDR, addr status)
+  mpd_qsub(a.x, a.x, b.x, CTX_ADDR, addr status)
 
 template `-=`*[T: SomeNumber](a: DecimalType, b: T) =
   a -= newDecimal(b)
@@ -137,7 +140,7 @@ template `-=`*[T: SomeNumber](a: DecimalType, b: T) =
 proc `*`*(a, b: DecimalType): DecimalType =
   var status: uint32
   result = newDecimal()
-  mpd_qmul(result[], a[], b[], CTX_ADDR, addr status)
+  mpd_qmul(result.x, a.x, b.x, CTX_ADDR, addr status)
 
 template `*`*[T: SomeNumber](a: T, b: DecimalType): untyped =
   newDecimal(a) * b
@@ -148,7 +151,7 @@ template `*`*[T: SomeNumber](a: DecimalType, b: T): untyped =
 proc `*=`*(a, b: DecimalType) =
   ## Inplace multiplication
   var status: uint32
-  mpd_qmul(a[], a[], b[], CTX_ADDR, addr status)
+  mpd_qmul(a.x, a.x, b.x, CTX_ADDR, addr status)
 
 template `*=`*[T: SomeNumber](a: DecimalType, b: T) =
   a *= newDecimal(b)
@@ -158,7 +161,7 @@ template `*=`*[T: SomeNumber](a: DecimalType, b: T) =
 proc `/`*(a, b: DecimalType): DecimalType =
   var status: uint32
   result = newDecimal()
-  mpd_qdiv(result[], a[], b[], CTX_ADDR, addr status)
+  mpd_qdiv(result.x, a.x, b.x, CTX_ADDR, addr status)
 
 template `/`*[T: SomeNumber](a: DecimalType, b: T): untyped =
   a / newDecimal(b)
@@ -169,7 +172,7 @@ template `/`*[T: SomeNumber](a: T, b: DecimalType): untyped =
 proc `/=`*(a, b: DecimalType) =
   ## Inplace division
   var status: uint32
-  mpd_qdiv(a[], a[], b[], CTX_ADDR, addr status)
+  mpd_qdiv(a.x, a.x, b.x, CTX_ADDR, addr status)
 
 template `/=`*[T: SomeNumber](a: DecimalType, b: T): untyped =
   a /= newDecimal(b)
@@ -180,7 +183,7 @@ proc `//`*(a, b: DecimalType): DecimalType =
   ## Integer division, same as divint
   var status: uint32
   result = newDecimal()
-  mpd_qdivint(result[], a[], b[], CTX_ADDR, addr status)
+  mpd_qdivint(result.x, a.x, b.x, CTX_ADDR, addr status)
 
 template `//`*[T: SomeNumber](a: DecimalType, b: T): untyped =
   a // newDecimal(b)
@@ -189,14 +192,14 @@ proc `^`*(a, b: DecimalType): DecimalType =
   ## Power operator
   var status: uint32
   result = newDecimal()
-  mpd_qpow(result[], a[], b[], CTX_ADDR, addr status)
+  mpd_qpow(result.x, a.x, b.x, CTX_ADDR, addr status)
 
 template `^`*[T: SomeNumber](a: DecimalType, b: T): untyped =
   a ^ newDecimal(b)
 
 proc `==`*(a, b: DecimalType): bool =
   var status: uint32
-  let cmp = mpd_qcmp(a[], b[], addr status)
+  let cmp = mpd_qcmp(a.x, b.x, addr status)
   if cmp == 0:
     return true
   else:
@@ -210,7 +213,7 @@ template `==`*[T: SomeNumber](a: T, b: DecimalType): untyped =
 
 proc `<`*(a, b: DecimalType): bool =
   var status: uint32
-  let cmp = mpd_qcmp(a[], b[], addr status)
+  let cmp = mpd_qcmp(a.x, b.x, addr status)
   if cmp == -1:
     return true
   else:
@@ -238,33 +241,33 @@ proc divint*(a, b: DecimalType): DecimalType =
   ## Integer division, same ass //
   var status: uint32
   result = newDecimal()
-  mpd_qdivint(result[], a[], b[], CTX_ADDR, addr status)
+  mpd_qdivint(result.x, a.x, b.x, CTX_ADDR, addr status)
 
 proc rem*(a, b: DecimalType): DecimalType =
   ## Returns the remainder of the division a/b
   var status: uint32
   result = newDecimal()
-  mpd_qrem(result[], a[], b[], CTX_ADDR, addr status)
+  mpd_qrem(result.x, a.x, b.x, CTX_ADDR, addr status)
 
 proc rem_near*(a, b: DecimalType): DecimalType =
   ## Return a - b * n, where n is the integer nearest the exact value of a / b. If two integers are equally near then the even one is chosen.
   var status: uint32
   result = newDecimal()
-  mpd_qrem_near(result[], a[], b[], CTX_ADDR, addr status)
+  mpd_qrem_near(result.x, a.x, b.x, CTX_ADDR, addr status)
 
 proc divmod*(a, b: DecimalType): (DecimalType, DecimalType) =
   ## Return both the integer part and remainder of the division a/b, same as (a // b, rem(a, b))
   var status: uint32
   var q = newDecimal()
   var r = newDecimal()
-  mpd_qdivmod(q[], r[], a[], b[], CTX_ADDR, addr status)
+  mpd_qdivmod(q.x, r.x, a.x, b.x, CTX_ADDR, addr status)
   result = (q, r)
 
 proc fma*(a, b, c: DecimalType): DecimalType =
   ## Fused multiplication-addition, returns a * b + c
   var status: uint32
   result = newDecimal()
-  mpd_qfma(result[], a[], b[], c[], CTX_ADDR, addr status)
+  mpd_qfma(result.x, a.x, b.x, c.x, CTX_ADDR, addr status)
 
 
 # Math functions
@@ -273,31 +276,31 @@ proc exp*(a: DecimalType): DecimalType =
   ## The exponential function
   var status: uint32
   result = newDecimal()
-  mpd_qexp(result[], a[], CTX_ADDR, addr status)
+  mpd_qexp(result.x, a.x, CTX_ADDR, addr status)
 
 proc ln*(a: DecimalType): DecimalType =
   ## The natural logarithm
   var status: uint32
   result = newDecimal()
-  mpd_qln(result[], a[], CTX_ADDR, addr status)
+  mpd_qln(result.x, a.x, CTX_ADDR, addr status)
 
 proc log10*(a: DecimalType): DecimalType =
   ## Logarithm base 10
   var status: uint32
   result = newDecimal()
-  mpd_qlog10(result[], a[], CTX_ADDR, addr status)
+  mpd_qlog10(result.x, a.x, CTX_ADDR, addr status)
 
 proc sqrt*(a: DecimalType): DecimalType =
   ## Square root
   var status: uint32
   result = newDecimal()
-  mpd_qsqrt(result[], a[], CTX_ADDR, addr status)
+  mpd_qsqrt(result.x, a.x, CTX_ADDR, addr status)
 
 proc invroot*(a: DecimalType): DecimalType =
   ## Inverse square root, same as 1/sqrt(a)
   var status: uint32
   result = newDecimal()
-  mpd_qinvroot(result[], a[], CTX_ADDR, addr status)
+  mpd_qinvroot(result.x, a.x, CTX_ADDR, addr status)
 
 
 
@@ -305,18 +308,18 @@ proc `-`*(a: DecimalType): DecimalType =
   ## Negation operator
   var status: uint32
   result = newDecimal()
-  mpd_qminus(result[], a[], CTX_ADDR, addr status)
+  mpd_qminus(result.x, a.x, CTX_ADDR, addr status)
 
 proc plus*(a: DecimalType): DecimalType =
   var status: uint32
   result = newDecimal()
-  mpd_qplus(result[], a[], CTX_ADDR, addr status)
+  mpd_qplus(result.x, a.x, CTX_ADDR, addr status)
 
 proc abs*(a: DecimalType): DecimalType =
   ## Absolute value
   var status: uint32
   result = newDecimal()
-  mpd_qabs(result[], a[], CTX_ADDR, addr status)
+  mpd_qabs(result.x, a.x, CTX_ADDR, addr status)
 
 
 
@@ -324,59 +327,59 @@ proc max*(a,b: DecimalType): DecimalType =
   ## Returns the most positive of a and b.
   var status: uint32
   result = newDecimal()
-  mpd_qmax(result[], a[], b[], CTX_ADDR, addr status)
+  mpd_qmax(result.x, a.x, b.x, CTX_ADDR, addr status)
 
 proc max_mag*(a,b: DecimalType): DecimalType =
   ## Returns the largest by magnitude of a and b
   var status: uint32
   result = newDecimal()
-  mpd_qmax_mag(result[], a[], b[], CTX_ADDR, addr status)
+  mpd_qmax_mag(result.x, a.x, b.x, CTX_ADDR, addr status)
 
 proc min*(a,b: DecimalType): DecimalType =
   ## Returns the most negative of a and b
   var status: uint32
   result = newDecimal()
-  mpd_qmin(result[], a[], b[], CTX_ADDR, addr status)
+  mpd_qmin(result.x, a.x, b.x, CTX_ADDR, addr status)
 
 proc min_mag*(a,b: DecimalType): DecimalType =
   ## Returns the smallest by magnitude of a and b
   var status: uint32
   result = newDecimal()
-  mpd_qmin_mag(result[], a[], b[], CTX_ADDR, addr status)
+  mpd_qmin_mag(result.x, a.x, b.x, CTX_ADDR, addr status)
 
 proc next_plus*(a: DecimalType): DecimalType =
   ## The closest representable number that is larger than a
   var status: uint32
   result = newDecimal()
-  mpd_qnext_plus(result[], a[], CTX_ADDR, addr status)
+  mpd_qnext_plus(result.x, a.x, CTX_ADDR, addr status)
 
 proc next_minus*(a: DecimalType): DecimalType =
   ## The closest representable number that is smaller than a
   var status: uint32
   result = newDecimal()
-  mpd_qnext_minus(result[], a[], CTX_ADDR, addr status)
+  mpd_qnext_minus(result.x, a.x, CTX_ADDR, addr status)
 
 proc next_toward*(a, b: DecimalType): DecimalType =
   ## Representable number closest to a that is in the direction towards b
   var status: uint32
   result = newDecimal()
-  mpd_qnext_toward(result[], a[], b[], CTX_ADDR, addr status)
+  mpd_qnext_toward(result.x, a.x, b.x, CTX_ADDR, addr status)
 
 proc quantize*(a, b: DecimalType): DecimalType =
   ## Return the number that is equal in value to a, but has the exponent of b
   var status: uint32
   result = newDecimal()
-  mpd_qquantize(result[], a[], b[], CTX_ADDR, addr status)
+  mpd_qquantize(result.x, a.x, b.x, CTX_ADDR, addr status)
 
 proc rescale*(a: DecimalType, b: mpd_ssize_t): DecimalType =
   ## Return the number that is equal in value to a, but has the exponent exp
   var status: uint32
   result = newDecimal()
-  mpd_qrescale(result[], a[], b, CTX_ADDR, addr status)
+  mpd_qrescale(result.x, a.x, b, CTX_ADDR, addr status)
 
 proc same_quantum*(a, b: DecimalType): bool =
   ## Return true if a and b have the same exponent, false otherwise
-  let cmp = mpd_same_quantum(a[], b[])
+  let cmp = mpd_same_quantum(a.x, b.x)
   if cmp == 1:
     return true
   else:
@@ -386,100 +389,108 @@ proc reduce*(a: DecimalType): DecimalType =
   ## If a is finite after applying rounding and overflow/underflow checks, result is set to the simplest form of a with all trailing zeros removed
   var status: uint32
   result = newDecimal()
-  mpd_qreduce(result[], a[], CTX_ADDR, addr status)
+  mpd_qreduce(result.x, a.x, CTX_ADDR, addr status)
 
 proc round_to_intx*(a: DecimalType): DecimalType =
   ## Round to an integer, using the rounding mode of the context
   var status: uint32
   result = newDecimal()
-  mpd_qround_to_intx(result[], a[], CTX_ADDR, addr status)
+  mpd_qround_to_intx(result.x, a.x, CTX_ADDR, addr status)
 
 proc round_to_int*(a: DecimalType): DecimalType =
   ## Same as mpd_qround_to_intx, but the MPD_Inexact and MPD_Rounded flags are never set
   var status: uint32
   result = newDecimal()
-  mpd_qround_to_int(result[], a[], CTX_ADDR, addr status)
+  mpd_qround_to_int(result.x, a.x, CTX_ADDR, addr status)
 
 proc floor*(a: DecimalType): DecimalType =
   ## Return the nearest integer towards -infinity
   var status: uint32
   result = newDecimal()
-  mpd_qfloor(result[], a[], CTX_ADDR, addr status)
+  mpd_qfloor(result.x, a.x, CTX_ADDR, addr status)
 
 proc ceil*(a: DecimalType): DecimalType =
   ## Return the nearest integer towards +infinity
   var status: uint32
   result = newDecimal()
-  mpd_qceil(result[], a[], CTX_ADDR, addr status)
+  mpd_qceil(result.x, a.x, CTX_ADDR, addr status)
 
 proc truncate*(a: DecimalType): DecimalType =
   ## Return the truncated value of a
   var status: uint32
   result = newDecimal()
-  mpd_qtrunc(result[], a[], CTX_ADDR, addr status)
+  mpd_qtrunc(result.x, a.x, CTX_ADDR, addr status)
 
 proc logb*(a: DecimalType): DecimalType =
   ## Return the adjusted exponent of a. Same as floor(log10(a))
   var status: uint32
   result = newDecimal()
-  mpd_qlogb(result[], a[], CTX_ADDR, addr status)
+  mpd_qlogb(result.x, a.x, CTX_ADDR, addr status)
 
 proc scaleb*(a, b: DecimalType): DecimalType =
   ## b must be an integer with exponent 0. If a is infinite, result is set to a. Otherwise, result is a with the value of b added to the exponent.
   var status: uint32
   result = newDecimal()
-  mpd_qscaleb(result[], a[], b[], CTX_ADDR, addr status)
+  mpd_qscaleb(result.x, a.x, b.x, CTX_ADDR, addr status)
 
 proc powmod*(base, exp, modulus: DecimalType): DecimalType =
   ## Return (base ^ exp) % mod. All operands must be integers. The function fails if result does not fit in the current prec.
   var status: uint32
   result = newDecimal()
-  mpd_qpowmod(result[], base[], exp[], modulus[], CTX_ADDR, addr status)
+  mpd_qpowmod(result.x, base.x, exp.x, modulus.x, CTX_ADDR, addr status)
 
 proc finalize*(a: DecimalType) =
   ## Apply the current context to a
   var status: uint32
-  mpd_qfinalize(a[], CTX_ADDR, addr status)
+  mpd_qfinalize(a.x, CTX_ADDR, addr status)
 
 proc shift*(a, b: DecimalType): DecimalType =
   ## Return a shifted by b places. b must be in the range [-prec, prec]. A negative b indicates a right shift, a positive b a left shift. Digits that do not fit are discarded.
   var status: uint32
   result = newDecimal()
-  mpd_qshift(result[], a[], b[], CTX_ADDR, addr status)
+  mpd_qshift(result.x, a.x, b.x, CTX_ADDR, addr status)
 
 proc shift*(a: DecimalType, b: mpd_ssize_t): DecimalType =
   ## Like shift, only that the number of places is specified by a integer type rather than a DecimalType
   var status: uint32
   result = newDecimal()
-  mpd_qshiftn(result[], a[], b, CTX_ADDR, addr status)
+  mpd_qshiftn(result.x, a.x, b, CTX_ADDR, addr status)
 
 proc rotate*(a, b: DecimalType): DecimalType =
   ## Return a rotated by b places. b must be in the range [-prec, prec]. A negative b indicates a right rotation, a positive b a left rotation.
   var status: uint32
   result = newDecimal()
-  mpd_qrotate(result[], a[], b[], CTX_ADDR, addr status)
+  mpd_qrotate(result.x, a.x, b.x, CTX_ADDR, addr status)
 
 proc elementwiseAnd*(a, b: DecimalType): DecimalType =
   ## Return the digit-wise logical and of a and b
   var status: uint32
   result = newDecimal()
-  mpd_qand(result[], a[], b[], CTX_ADDR, addr status)
+  mpd_qand(result.x, a.x, b.x, CTX_ADDR, addr status)
 
 proc elementwiseOr*(a, b: DecimalType): DecimalType =
   ## Return  the digit-wise logical or of a and b
   var status: uint32
   result = newDecimal()
-  mpd_qor(result[], a[], b[], CTX_ADDR, addr status)
+  mpd_qor(result.x, a.x, b.x, CTX_ADDR, addr status)
 
 proc elementwiseXor*(a, b: DecimalType): DecimalType =
   ## Return the digit-wise logical xor of a and b
   var status: uint32
   result = newDecimal()
-  mpd_qxor(result[], a[], b[], CTX_ADDR, addr status)
+  mpd_qxor(result.x, a.x, b.x, CTX_ADDR, addr status)
 
 proc elementwiseInvert*(a: DecimalType): DecimalType =
   ## Return the digit-wise logical inversion of a
   var status: uint32
   result = newDecimal()
-  mpd_qinvert(result[], a[], CTX_ADDR, addr status)
+  mpd_qinvert(result.x, a.x, CTX_ADDR, addr status)
 
+when isMainModule:
+  proc main() =
+    while true:
+      let x = newDecimal("1.1")
+      let y = newDecimal("2.2")
+      let z = x + y
+      echo z
+  main()
