@@ -12,7 +12,7 @@ A correctly-rounded arbitrary precision decimal floating point arithmetic librar
 
 You can install the developement version of the library through nimble with the following command
 ```
-nimble install https://github.com/status-im/nim-decimal@#master
+nimble install https://github.com/inv2004/nim-decimal@#master
 ```
 
 ## License
