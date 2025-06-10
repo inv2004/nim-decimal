@@ -292,8 +292,9 @@ suite "Basic Arithmetic":
   test "Decimal elementwiseInvert":
     let a = newDecimal("111010")
     check $elementwiseInvert(a) == "11111111111111111111111111111111000101"
-
-
-
-
-
+  test "Copy": # fails sometimes because of double-free because of copy
+    while true:
+      let a = newDecimal("100")
+      let b = a # copy
+      echo a.repr
+      echo b.repr

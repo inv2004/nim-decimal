@@ -14,6 +14,9 @@ const cHeader = csourcesPath / "mpdecimal.h"
 {.passC: "-I" & cSourcesPath .}
 {.passC: "-DHAVE_CONFIG_H".}
 
+type
+  DecimalError* = object of ValueError
+
 when sizeof(int) == 8:
   # Test if 64-bit arch
   {.passC: "-DCONFIG_64".}
@@ -1181,6 +1184,21 @@ type
 proc `=destroy`(x: DecimalType) =
   if not x.x.isNil:        # Managed by Nim
     mpd_del(x.x)
+
+proc `=wasMoved`(x: var DecimalType) =
+  x.x = nil
+
+proc `=copy`(a: var DecimalType, b: DecimalType) =
+  if a == b:
+    return
+  `=destroy`(a)
+  `=wasMoved`(a)
+  if not b.x.isNil:
+    var status: uint32
+    a.x = mpd_qnew() # not sure
+    let success = mpd_qcopy(a.x, b.x, addr status)
+    if success == 0:
+      raise newException(ValueError, "Decimal failed to copy")
 
 proc newDecimal*(): DecimalType =
   result.x = mpd_qnew()

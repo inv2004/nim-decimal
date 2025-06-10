@@ -10,9 +10,6 @@ import system/ansi_c
 
 export DecimalType, newDecimal    # type bound operation `newDecimal` and `deleteDecimal` can be defined only in the same module
 
-type
-  DecimalError* = object of ValueError
-
 const
   DEFAULT_PREC = MPD_RDIGITS * 2
   DEFAULT_EMAX = when (sizeof(int) == 8): 999999999999999999 else: 425000000
