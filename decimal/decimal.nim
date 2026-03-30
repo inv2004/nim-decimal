@@ -28,6 +28,7 @@ proc setPrec*(prec: mpd_ssize_t) =
 
 proc `$`*(s: DecimalType): string =
   ## Convert DecimalType to string
+  if s.x.isNil: return ""
   let tmp = mpd_to_sci(s.x, 0)
   result = $tmp
   c_free(tmp)
