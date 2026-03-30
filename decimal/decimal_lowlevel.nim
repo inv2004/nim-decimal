@@ -1188,17 +1188,17 @@ proc `=destroy`(x: DecimalType) =
 proc `=wasMoved`(x: var DecimalType) =
   x.x = nil
 
-proc `=copy`(a: var DecimalType, b: DecimalType) =
-  if a == b:
+proc `=copy`(dst: var DecimalType, src: DecimalType) =
+  if dst.x == src.x: return
+  if src.x.isNil:
+    if not dst.x.isNil:
+      mpd_del(dst.x)
+      dst.x = nil
     return
-  `=destroy`(a)
-  `=wasMoved`(a)
-  if not b.x.isNil:
-    var status: uint32
-    a.x = mpd_qnew() # not sure
-    let success = mpd_qcopy(a.x, b.x, addr status)
-    if success == 0:
-      raise newException(ValueError, "Decimal failed to copy")
+  if dst.x.isNil:
+    dst.x = mpd_qnew()
+  var status: uint32
+  discard mpd_qcopy(dst.x, src.x, addr status)
 
 proc newDecimal*(): DecimalType =
   result.x = mpd_qnew()
